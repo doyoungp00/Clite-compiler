@@ -1,17 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="9afdbde6-1b83-4587-a7ed-7a0f463f9007" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Lexer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Token.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/TokenType.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test/convert.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test/factorial.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test/newton.cpp" afterDir="false" />
+    <list default="true" id="9afdbde6-1b83-4587-a7ed-7a0f463f9007" name="Changes" comment="Init project">
+      <change afterPath="$PROJECT_DIR$/.gitattributes" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Clite-compiler/.gitattributes" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,6 +32,14 @@
     "last_opened_file_path": "/home/doyoung/IdeaProjects/Clite"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -51,6 +56,15 @@
       <option name="presentableId" value="Default" />
       <updated>1711935373017</updated>
     </task>
+    <task id="LOCAL-00001" summary="Init project">
+      <option name="closed" value="true" />
+      <created>1711935766781</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1711935766781</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -63,5 +77,9 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Init project" />
+    <option name="LAST_COMMIT_MESSAGE" value="Init project" />
   </component>
 </project>
