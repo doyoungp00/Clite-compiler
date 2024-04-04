@@ -70,86 +70,86 @@ public class Lexer {
 				return Token.mkFloatLiteral(number);
 			} else
 				switch (ch) {
-				case ' ':
-				case '\t':
-				case '\r':
-				case eolnCh:
-					ch = nextChar();
-					break;
-
-				case '/': // divide or comment
-					ch = nextChar();
-					if (ch != '/')
-						return Token.divideTok;
-					// comment
-					do {
+					case ' ':
+					case '\t':
+					case '\r':
+					case eolnCh:
 						ch = nextChar();
-					} while (ch != eolnCh);
-					ch = nextChar();
-					break;
+						break;
 
-				case '\'': // char literal
-					char ch1 = nextChar();
-					nextChar(); // get '
-					ch = nextChar();
-					return Token.mkCharLiteral("" + ch1);
+					case '/': // divide or comment
+						ch = nextChar();
+						if (ch != '/')
+							return Token.divideTok;
+						// comment
+						do {
+							ch = nextChar();
+						} while (ch != eolnCh);
+						ch = nextChar();
+						break;
 
-				case eofCh:
-					return Token.eofTok;
+					case '\'': // char literal
+						char ch1 = nextChar();
+						nextChar(); // get '
+						ch = nextChar();
+						return Token.mkCharLiteral("" + ch1);
 
-				case '+':
-					ch = nextChar();
-					return Token.plusTok;
+					case eofCh:
+						return Token.eofTok;
 
-				// - * ( ) { } ; , student exercise
-				case '-':
-					// -- (감소) 연산자는 없으므로 무조건 뺄셈임
-					ch = nextChar();
-					return Token.minusTok;
-				case '*':
-					ch = nextChar();
-					return Token.multiplyTok;
-				case '(':
-					ch = nextChar();
-					return Token.leftParenTok;
-				case ')':
-					ch = nextChar();
-					return Token.rightParenTok;
-				case '{':
-					ch = nextChar();
-					return Token.leftBraceTok;
-				case '}':
-					ch = nextChar();
-					return Token.rightBraceTok;
-				case ';':
-					ch = nextChar();
-					return Token.semicolonTok;
-				case ',':
-					ch = nextChar();
-					return Token.commaTok;
+					case '+':
+						ch = nextChar();
+						return Token.plusTok;
 
-				case '&':
-					check('&');
-					return Token.andTok;
-				case '|':
-					check('|');
-					return Token.orTok;
+					// - * ( ) { } ; , student exercise
+					case '-':
+						// -- (감소) 연산자는 없으므로 무조건 뺄셈임
+						ch = nextChar();
+						return Token.minusTok;
+					case '*':
+						ch = nextChar();
+						return Token.multiplyTok;
+					case '(':
+						ch = nextChar();
+						return Token.leftParenTok;
+					case ')':
+						ch = nextChar();
+						return Token.rightParenTok;
+					case '{':
+						ch = nextChar();
+						return Token.leftBraceTok;
+					case '}':
+						ch = nextChar();
+						return Token.rightBraceTok;
+					case ';':
+						ch = nextChar();
+						return Token.semicolonTok;
+					case ',':
+						ch = nextChar();
+						return Token.commaTok;
 
-				case '=':
-					return chkOpt('=', Token.assignTok, Token.eqeqTok);
-				// < > ! student exercise
-				case '<':
-					// < 와 <= 구분 필요
-					return chkOpt('=', Token.ltTok, Token.lteqTok);
-				case '>':
-					// > 와 >= 구분 필요
-					return chkOpt('=', Token.gtTok, Token.gteqTok);
-				case '!':
-					// ! 와 != 구분 필요
-					return chkOpt('=', Token.notTok, Token.noteqTok);
+					case '&':
+						check('&');
+						return Token.andTok;
+					case '|':
+						check('|');
+						return Token.orTok;
 
-				default:
-					error("Illegal character " + ch);
+					case '=':
+						return chkOpt('=', Token.assignTok, Token.eqeqTok);
+					// < > ! student exercise
+					case '<':
+						// < 와 <= 구분 필요
+						return chkOpt('=', Token.ltTok, Token.lteqTok);
+					case '>':
+						// > 와 >= 구분 필요
+						return chkOpt('=', Token.gtTok, Token.gteqTok);
+					case '!':
+						// ! 와 != 구분 필요
+						return chkOpt('=', Token.notTok, Token.noteqTok);
+
+					default:
+						error("Illegal character " + ch);
 				} // switch
 		} while (true);
 	} // next

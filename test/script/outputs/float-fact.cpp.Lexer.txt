@@ -1,0 +1,45 @@
+int
+main
+(
+)
+{
+float
+Identifier	n
+,
+Identifier	i
+,
+Identifier	f
+;
+Identifier	n
+=
+FloatLiteral	3.0
+;
+Identifier	i
+=
+FloatLiteral	1.0
+;
+Identifier	f
+=
+FloatLiteral	1.0
+;
+while
+(
+Identifier	i
+<
+Identifier	n
+)
+{
+Identifier	i
+=
+Identifier	i
++
+FloatLiteral	1.0
+;
+Identifier	f
+=
+Identifier	f
+*
+Identifier	i
+;
+}
+}

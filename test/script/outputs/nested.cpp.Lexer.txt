@@ -1,0 +1,48 @@
+int
+main
+(
+)
+{
+float
+Identifier	a
+,
+Identifier	b
+,
+Identifier	c
+,
+Identifier	d
+;
+Identifier	a
+=
+FloatLiteral	5.0
+;
+Identifier	b
+=
+FloatLiteral	4.5
+;
+Identifier	c
+=
+FloatLiteral	3.3
+;
+Identifier	d
+=
+FloatLiteral	2.2
+;
+Identifier	a
+=
+(
+Identifier	b
+*
+float
+(
+IntLiteral	1
+)
+)
++
+(
+Identifier	c
+-
+Identifier	d
+)
+;
+}

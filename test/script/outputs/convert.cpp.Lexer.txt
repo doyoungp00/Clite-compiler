@@ -1,0 +1,32 @@
+int
+main
+(
+)
+{
+float
+Identifier	f
+;
+int
+Identifier	i
+;
+char
+Identifier	c
+;
+Identifier	c
+=
+CharLiteral	a
+;
+Identifier	i
+=
+IntLiteral	77
+;
+Identifier	f
+=
+Identifier	i
+-
+int
+(
+Identifier	c
+)
+;
+}

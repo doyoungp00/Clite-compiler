@@ -1,0 +1,22 @@
+int
+main
+(
+)
+{
+char
+Identifier	c
+;
+int
+Identifier	i
+;
+Identifier	c
+=
+CharLiteral	h
+;
+Identifier	i
+=
+Identifier	c
++
+IntLiteral	3
+;
+}

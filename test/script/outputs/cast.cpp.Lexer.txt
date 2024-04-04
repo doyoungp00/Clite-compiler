@@ -1,0 +1,24 @@
+int
+main
+(
+)
+{
+int
+Identifier	c
+;
+float
+Identifier	b
+;
+Identifier	c
+=
+IntLiteral	1
+;
+Identifier	b
+=
+-
+float
+(
+Identifier	c
+)
+;
+}
