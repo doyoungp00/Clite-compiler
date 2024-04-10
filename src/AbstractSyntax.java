@@ -3,6 +3,22 @@
 
 import java.util.ArrayList;
 
+class Indenter {
+    public int level;
+
+    public Indenter(int nextLevel) {
+        level = nextLevel;
+    }
+
+    public void display(String message) {
+        String tab = "";
+        System.out.println();
+        for (int i = 0; i < level; i++)
+            tab += "  ";
+        System.out.print(tab + message);
+    }
+}
+
 class Program {
     // Program = Declarations decpart ; Block body
     Declarations decpart;
@@ -13,12 +29,30 @@ class Program {
         body = b;
     }
 
+    public void display() {
+        int level = 0;
+        Indenter i = new Indenter(level);
+        i.display("Program (abstract syntax): ");
+        decpart.display(level + 1);
+        body.display(level + 1);
+    }
 }
 
 class Declarations extends ArrayList<Declaration> {
     // Declarations = Declaration*
     // (a list of declarations d1, d2, ..., dn)
-
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Declarations:");
+        i.display("  Declarations = {");
+        String sep = "";
+        for (Declaration d : this) {
+            System.out.print(sep);
+            d.display();
+            sep = ", ";
+        }
+        System.out.print("}");
+    }
 }
 
 class Declaration {
@@ -31,6 +65,9 @@ class Declaration {
         t = type;
     } // declaration */
 
+    public void display() {
+        System.out.print("<" + v.toString() + ", " + t.toString() + ">");
+    }
 }
 
 class Type {
@@ -54,7 +91,8 @@ class Type {
 
 abstract class Statement {
     // Statement = Skip | Block | Assignment | Conditional | Loop
-
+    public void display(int level) {
+    }
 }
 
 class Skip extends Statement {
@@ -65,6 +103,13 @@ class Block extends Statement {
     //         (a Vector of members)
     public ArrayList<Statement> members = new ArrayList<Statement>();
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Block:");
+        for (Statement s : members)
+            s.display(level + 1);
+    }
 }
 
 class Assignment extends Statement {
@@ -77,6 +122,13 @@ class Assignment extends Statement {
         source = e;
     }
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Assignment:");
+        target.display(level + 1);
+        source.display(level + 1);
+    }
 }
 
 class Conditional extends Statement {
@@ -97,6 +149,14 @@ class Conditional extends Statement {
         elsebranch = ep;
     }
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Conditional:");
+        test.display(level + 1);
+        thenbranch.display(level + 1);
+        if (elsebranch != null) elsebranch.display(level + 1);
+    }
 }
 
 class Loop extends Statement {
@@ -109,11 +169,19 @@ class Loop extends Statement {
         body = b;
     }
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Loop:");
+        test.display(level + 1);
+        body.display(level + 1);
+    }
 }
 
 abstract class Expression {
     // Expression = Variable | Value | Binary | Unary
-
+    public void display(int level) {
+    }
 }
 
 class Variable extends Expression {
@@ -135,6 +203,12 @@ class Variable extends Expression {
 
     public int hashCode() {
         return id.hashCode();
+    }
+
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Variable: " + id);
     }
 
 }
@@ -205,6 +279,11 @@ class IntValue extends Value {
         return "" + value;
     }
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("IntValue: " + value);
+    }
 }
 
 class BoolValue extends Value {
@@ -235,6 +314,11 @@ class BoolValue extends Value {
         return "" + value;
     }
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("BoolValue: " + value);
+    }
 }
 
 class CharValue extends Value {
@@ -260,6 +344,11 @@ class CharValue extends Value {
         return "" + value;
     }
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("CharValue: " + value);
+    }
 }
 
 class FloatValue extends Value {
@@ -285,6 +374,11 @@ class FloatValue extends Value {
         return "" + value;
     }
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("FloatValue: " + value);
+    }
 }
 
 class Binary extends Expression {
@@ -298,6 +392,14 @@ class Binary extends Expression {
         term2 = r;
     } // binary
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Binary:");
+        i.display("  Operator: " + op.toString());
+        term1.display(level + 1);
+        term2.display(level + 1);
+    }
 }
 
 class Unary extends Expression {
@@ -310,6 +412,13 @@ class Unary extends Expression {
         term = e;
     } // unary
 
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Unary:");
+        i.display("  Operator: " + op.toString());
+        term.display(level + 1);
+    }
 }
 
 class Operator {

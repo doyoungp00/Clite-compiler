@@ -46,75 +46,195 @@ public class Parser {
         for (int i = 0; i < header.length; i++)   // bypass "int main ( )"
             match(header[i]);
         match(TokenType.LeftBrace);
-        // student exercise
+
+        // 모든 Declarations와 Statements (Block) 가져와서 프로그램 생성
+        Declarations d = declarations();
+        Block b = new Block();
+        // 블럭이나 파일이 끝나기 전까지 Statement 추가
+        while (!token.type().equals(TokenType.RightBrace) && !token.type().equals(TokenType.Eof))
+            b.members.add(statement());
         match(TokenType.RightBrace);
-        return null;  // student exercise
+
+        // 받아온 Declarations와 Statements로 새로운 Program 생성
+        return new Program(d, b);
     }
 
     private Declarations declarations() {
         // Declarations --> { Declaration }
-        return null;  // student exercise
+        // 여러 개의 선언문을 인식해야 함
+        // 타입이 나오면 ds에 추가
+        Declarations ds = new Declarations();
+        while (isType()) declaration(ds);
+
+        return ds;
     }
 
     private void declaration(Declarations ds) {
         // Declaration  --> Type Identifier { , Identifier } ;
-        // student exercise
+        Type t = type();
+        do {
+            // 변수명으로 Variable 생성 후 Declaration도 생성
+            Variable v = new Variable(match(TokenType.Identifier));
+            ds.add(new Declaration(v, t));
+            // 변수 이름이 더 나오지 않으면 break
+            if (!token.type().equals(TokenType.Comma))
+                break;
+            match(TokenType.Comma); // ',' 소모 후 반복
+        } while (true);
+        // 마지막 세미콜론 소모
+        match(TokenType.Semicolon);
     }
 
     private Type type() {
         // Type  -->  int | bool | float | char
         Type t = null;
-        // student exercise
+        // 토큰의 TokenType을 보고 그에 맞는 Type 반환
+        switch (token.type()) {
+            case Int:
+                t = Type.INT;
+                break;
+            case Bool:
+                t = Type.BOOL;
+                break;
+            case Float:
+                t = Type.FLOAT;
+                break;
+            case Char:
+                t = Type.CHAR;
+                break;
+            default:
+                error("int | bool | float | char");
+        }
+        match(token.type()); // 토큰 소모
         return t;
     }
 
     private Statement statement() {
         // Statement --> ; | Block | Assignment | IfStatement | WhileStatement
         Statement s = new Skip();
-        // student exercise
+        switch (token.type()) {
+            case Semicolon:
+                // 세미콜론 소모 후 Skip 그대로 반환
+                match(TokenType.Semicolon);
+                break;
+            case LeftBrace:
+                s = statements();
+                break;
+            case Identifier:
+                s = assignment();
+                break;
+            case If:
+                s = ifStatement();
+                break;
+            case While:
+                s = whileStatement();
+                break;
+            default:
+                error("; | { | Identifier | if | while");
+        }
         return s;
     }
 
     private Block statements() {
         // Block --> '{' Statements '}'
         Block b = new Block();
-        // student exercise
+        match(TokenType.LeftBrace); // '{'
+        // 블럭이나 파일이 끝나기 전까지 Statement 추가
+        while (!token.type().equals(TokenType.RightBrace) && !token.type().equals(TokenType.Eof))
+            b.members.add(statement());
+        match(TokenType.RightBrace); // '}'
+
         return b;
     }
 
     private Assignment assignment() {
         // Assignment --> Identifier = Expression ;
-        return null;  // student exercise
+        Variable target;
+        Expression source;
+
+        // 좌변 Identifier로 새로운 Variable 생성
+        target = new Variable(match(TokenType.Identifier));
+        match(TokenType.Assign); // 대입 '=' 토큰 소모
+        source = expression(); // Expression 파싱
+        match(TokenType.Semicolon); // 세미콜론 소모
+        return new Assignment(target, source);
     }
 
     private Conditional ifStatement() {
         // IfStatement --> if ( Expression ) Statement [ else Statement ]
-        return null;  // student exercise
+        Conditional c = null;
+        Expression test;
+        Statement thenbranch, elsebranch;
+
+        match(TokenType.If); // 'if'
+        match(TokenType.LeftParen); // '('
+        test = expression(); // 조건식
+        match(TokenType.RightParen); // ')'
+        thenbranch = statement(); // thenbranch
+
+        // else문 검사
+        if (token.type().equals(TokenType.Else)) { // if-then-else
+            match(TokenType.Else); // else 소모
+            elsebranch = statement();
+            c = new Conditional(test, thenbranch, elsebranch);
+        } else { // if-then
+            c = new Conditional(test, thenbranch);
+        }
+        return c;
     }
 
     private Loop whileStatement() {
         // WhileStatement --> while ( Expression ) Statement
-        return null;  // student exercise
+        match(TokenType.While);
+        match(TokenType.LeftParen);
+        Expression test = expression();
+        match(TokenType.RightParen);
+        Statement body = statement();
+        return new Loop(test, body);
     }
 
     private Expression expression() {
         // Expression --> Conjunction { || Conjunction }
-        return null;  // student exercise
+        Expression result = conjunction();
+        while (token.type().equals(TokenType.Or)) {
+            Operator op = new Operator(match(TokenType.Or)); // || 소모
+            Expression right = conjunction(); // or의 우변 처리
+            result = new Binary(op, result, right); // or의 좌변과 우변을 Binary 객체로 변환
+        }
+        return result;
     }
 
     private Expression conjunction() {
         // Conjunction --> Equality { && Equality }
-        return null;  // student exercise
+        Expression result = equality();
+        while (token.type().equals(TokenType.And)) {
+            Operator op = new Operator(match(TokenType.And)); // && 소모
+            Expression right = equality(); // and의 우변 처리
+            result = new Binary(op, result, right); // and의 좌변과 우변을 Binary 객체로 변환
+        }
+        return result;
     }
 
     private Expression equality() {
         // Equality --> Relation [ EquOp Relation ]
-        return null;  // student exercise
+        Expression result = relation();
+        while (isEqualityOp()) {
+            Operator op = new Operator(match(token.type())); // ==이나 !=를 소모
+            Expression right = relation(); // 우변 처리
+            result = new Binary(op, result, right); // 좌변과 우변을 Binary 객체로 변환
+        }
+        return result;
     }
 
     private Expression relation() {
         // Relation --> Addition [RelOp Addition]
-        return null;  // student exercise
+        Expression result = addition();
+        while (isRelationalOp()) {
+            Operator op = new Operator(match(token.type())); // 관계 연산자 소모
+            Expression right = addition(); // 우변 처리
+            result = new Binary(op, result, right); // 좌변과 우변을 Binary 객체로 변환
+        }
+        return result;
     }
 
     private Expression addition() {
@@ -171,7 +291,31 @@ public class Parser {
     }
 
     private Value literal() {
-        return null;  // student exercise
+        Value result = null;
+        TokenType type = token.type();
+        String s = match(type);
+        switch (type) {
+            case IntLiteral:
+                result = new IntValue(Integer.parseInt(s));
+                break;
+            // BoolLiteral은 없으므로 True와 False 이용
+            case True:
+                result = new BoolValue(true);
+                break;
+            case False:
+                result = new BoolValue(false);
+                break;
+            case CharLiteral:
+                result = new CharValue(s.charAt(0));
+                break;
+            case FloatLiteral:
+                result = new FloatValue(Float.parseFloat(s));
+                break;
+            default:
+                error("int | bool | char | float");
+                break;
+        }
+        return result;
     }
 
     private boolean isAddOp() {
