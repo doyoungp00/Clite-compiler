@@ -26,7 +26,19 @@ public class TypeTransformer {
                 return new Binary(b.op.boolMap(b.op.val), t1, t2);
             throw new IllegalArgumentException("should never reach here");
         }
-        // student exercise
+        if (e instanceof Unary) {
+            Unary u = (Unary) e;
+            Type t = StaticTypeCheck.typeOf(u.term, tm);
+            Expression exp = T(u.term, tm);
+            if (t.equals(Type.BOOL))
+                return new Unary(u.op.boolMap(u.op.val), exp);
+            else if (t.equals(Type.FLOAT))
+                return new Unary(u.op.floatMap(u.op.val), exp);
+            else if (t.equals(Type.INT))
+                return new Unary(u.op.intMap(u.op.val), exp);
+            else if (t.equals(Type.CHAR))
+                return new Unary(u.op.charMap(u.op.val), exp);
+        }
         throw new IllegalArgumentException("should never reach here");
     }
 
@@ -49,8 +61,7 @@ public class TypeTransformer {
                     srctype = Type.INT;
                 }
             }
-            StaticTypeCheck.check(ttype == srctype,
-                    "bug in assignment to " + target);
+            StaticTypeCheck.check(ttype == srctype, "bug in assignment to " + target);
             return new Assignment(target, src);
         }
         if (s instanceof Conditional) {
@@ -80,15 +91,15 @@ public class TypeTransformer {
     public static void main(String args[]) {
         Parser parser = new Parser(new Lexer(args[0]));
         Program prog = parser.program();
-        // prog.display();           // student exercise
+        prog.display();
         System.out.println("\nBegin type checking...");
         System.out.println("Type map:");
         TypeMap map = StaticTypeCheck.typing(prog.decpart);
-        // map.display();    // student exercise
+        map.display();
         StaticTypeCheck.V(prog);
         Program out = T(prog, map);
         System.out.println("Output AST");
-        // out.display();    // student exercise
+        out.display();
     } //main
 
 } // class TypeTransformer
