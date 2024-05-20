@@ -7,19 +7,19 @@ public class Semantics {
     public static void main(String args[]) {
         Parser parser = new Parser(new Lexer(args[0]));
         Program prog = parser.program();
-        // prog.display();    // student exercise
-        System.out.println("\nBegin type checking...");
-        System.out.println("Type map:");
+        prog.display();
+        System.out.println("\n\nBegin type checking...");
+        System.out.println("\nType map:");
         TypeMap map = StaticTypeCheck.typing(prog.decpart);
-        // map.display();    // student exercise
+        map.display();
         StaticTypeCheck.V(prog);
         Program out = TypeTransformer.T(prog, map);
-        System.out.println("Output AST");
-        // out.display();    // student exercise
+        System.out.println("\nOutput AST");
+        out.display();
         Semantics semantics = new Semantics();
         State state = semantics.M(out);
-        System.out.println("Final State");
-        // state.display( );  // student exercise
+        System.out.println("\n\nFinal State");
+        state.display();
     }
 
     State M(Program p) {
@@ -71,38 +71,106 @@ public class Semantics {
     }
 
     Value applyBinary(Operator op, Value v1, Value v2) {
-        StaticTypeCheck.check(!v1.isUndef() && !v2.isUndef(),
-                "reference to undef value");
-        if (op.val.equals(Operator.INT_PLUS))
-            return new IntValue(v1.intValue() + v2.intValue());
-        if (op.val.equals(Operator.INT_MINUS))
-            return new IntValue(v1.intValue() - v2.intValue());
-        if (op.val.equals(Operator.INT_TIMES))
-            return new IntValue(v1.intValue() * v2.intValue());
-        if (op.val.equals(Operator.INT_DIV))
-            return new IntValue(v1.intValue() / v2.intValue());
-        // student exercise
-        throw new IllegalArgumentException("should never reach here");
+        StaticTypeCheck.check(!v1.isUndef() && !v2.isUndef(), "reference to undef value");
+
+        switch (op.val) {
+            case Operator.AND:
+                return new BoolValue(v1.boolValue() && v2.boolValue());
+            case Operator.OR:
+                return new BoolValue(v1.boolValue() || v2.boolValue());
+
+            case Operator.INT_LT:
+                return new BoolValue(v1.intValue() < v2.intValue());
+            case Operator.INT_LE:
+                return new BoolValue(v1.intValue() <= v2.intValue());
+            case Operator.INT_EQ:
+                return new BoolValue(v1.intValue() == v2.intValue());
+            case Operator.INT_NE:
+                return new BoolValue(v1.intValue() != v2.intValue());
+            case Operator.INT_GT:
+                return new BoolValue(v1.intValue() > v2.intValue());
+            case Operator.INT_GE:
+                return new BoolValue(v1.intValue() >= v2.intValue());
+                
+            case Operator.FLOAT_LT:
+                return new BoolValue(v1.floatValue() < v2.floatValue());
+            case Operator.FLOAT_LE:
+                return new BoolValue(v1.floatValue() <= v2.floatValue());
+            case Operator.FLOAT_EQ:
+                return new BoolValue(v1.floatValue() == v2.floatValue());
+            case Operator.FLOAT_NE:
+                return new BoolValue(v1.floatValue() != v2.floatValue());
+            case Operator.FLOAT_GT:
+                return new BoolValue(v1.floatValue() > v2.floatValue());
+            case Operator.FLOAT_GE:
+                return new BoolValue(v1.floatValue() >= v2.floatValue());
+
+            case Operator.CHAR_LT:
+                return new BoolValue(v1.charValue() < v2.charValue());
+            case Operator.CHAR_LE:
+                return new BoolValue(v1.charValue() <= v2.charValue());
+            case Operator.CHAR_EQ:
+                return new BoolValue(v1.charValue() == v2.charValue());
+            case Operator.CHAR_NE:
+                return new BoolValue(v1.charValue() != v2.charValue());
+            case Operator.CHAR_GT:
+                return new BoolValue(v1.charValue() > v2.charValue());
+            case Operator.CHAR_GE:
+                return new BoolValue(v1.charValue() >= v2.charValue());
+
+            case Operator.BOOL_LT:
+                return new BoolValue(v1.boolValue() && !v2.boolValue());
+            case Operator.BOOL_LE:
+                return new BoolValue(v1.boolValue() || !v2.boolValue());
+            case Operator.BOOL_EQ:
+                return new BoolValue(v1.boolValue() == v2.boolValue());
+            case Operator.BOOL_NE:
+                return new BoolValue(v1.boolValue() != v2.boolValue());
+            case Operator.BOOL_GT:
+                return new BoolValue(!v1.boolValue() && v2.boolValue());
+            case Operator.BOOL_GE:
+                return new BoolValue(!v1.boolValue() || v2.boolValue());
+
+            case Operator.INT_PLUS:
+                return new IntValue(v1.intValue() + v2.intValue());
+            case Operator.INT_MINUS:
+                return new IntValue(v1.intValue() - v2.intValue());
+            case Operator.INT_TIMES:
+                return new IntValue(v1.intValue() * v2.intValue());
+            case Operator.INT_DIV:
+                return new IntValue(v1.intValue() / v2.intValue());
+
+            case Operator.FLOAT_PLUS:
+                return new FloatValue(v1.floatValue() + v2.floatValue());
+            case Operator.FLOAT_MINUS:
+                return new FloatValue(v1.floatValue() - v2.floatValue());
+            case Operator.FLOAT_TIMES:
+                return new FloatValue(v1.floatValue() * v2.floatValue());
+            case Operator.FLOAT_DIV:
+                return new FloatValue(v1.floatValue() / v2.floatValue());
+
+            default:
+                throw new IllegalArgumentException("Unknown binary operator " + op.val);
+        }
     }
 
     Value applyUnary(Operator op, Value v) {
-        StaticTypeCheck.check(!v.isUndef(),
-                "reference to undef value");
+        StaticTypeCheck.check(!v.isUndef(), "reference to undef value");
         if (op.val.equals(Operator.NOT))
             return new BoolValue(!v.boolValue());
-        else if (op.val.equals(Operator.INT_NEG))
+        if (op.val.equals(Operator.INT_NEG))
             return new IntValue(-v.intValue());
-        else if (op.val.equals(Operator.FLOAT_NEG))
+        if (op.val.equals(Operator.FLOAT_NEG))
             return new FloatValue(-v.floatValue());
-        else if (op.val.equals(Operator.I2F))
+        if (op.val.equals(Operator.I2F))
             return new FloatValue((float) (v.intValue()));
-        else if (op.val.equals(Operator.F2I))
+        if (op.val.equals(Operator.F2I))
             return new IntValue((int) (v.floatValue()));
-        else if (op.val.equals(Operator.C2I))
+        if (op.val.equals(Operator.C2I))
             return new IntValue((int) (v.charValue()));
-        else if (op.val.equals(Operator.I2C))
+        if (op.val.equals(Operator.I2C))
             return new CharValue((char) (v.intValue()));
-        throw new IllegalArgumentException("should never reach here");
+        throw new IllegalArgumentException("Unknown unary operator " + op.val);
     }
 
     Value M(Expression e, State state) {
@@ -112,8 +180,7 @@ public class Semantics {
             return (Value) (state.get(e));
         if (e instanceof Binary) {
             Binary b = (Binary) e;
-            return applyBinary(b.op,
-                    M(b.term1, state), M(b.term2, state));
+            return applyBinary(b.op, M(b.term1, state), M(b.term2, state));
         }
         if (e instanceof Unary) {
             Unary u = (Unary) e;

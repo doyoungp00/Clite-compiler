@@ -18,11 +18,11 @@ public class TypeTransformer {
             Expression t2 = T(b.term2, tm);
             if (typ1 == Type.INT)
                 return new Binary(b.op.intMap(b.op.val), t1, t2);
-            else if (typ1 == Type.FLOAT)
+            if (typ1 == Type.FLOAT)
                 return new Binary(b.op.floatMap(b.op.val), t1, t2);
-            else if (typ1 == Type.CHAR)
+            if (typ1 == Type.CHAR)
                 return new Binary(b.op.charMap(b.op.val), t1, t2);
-            else if (typ1 == Type.BOOL)
+            if (typ1 == Type.BOOL)
                 return new Binary(b.op.boolMap(b.op.val), t1, t2);
             throw new IllegalArgumentException("should never reach here");
         }
@@ -32,11 +32,17 @@ public class TypeTransformer {
             Expression exp = T(u.term, tm);
             if (t.equals(Type.BOOL))
                 return new Unary(u.op.boolMap(u.op.val), exp);
-            else if (t.equals(Type.FLOAT))
+            if (t.equals(Type.FLOAT)) {
+                if (u.op.val.equals(Operator.MINUS))
+                    return new Unary(new Operator(Operator.FLOAT_NEG), exp);
                 return new Unary(u.op.floatMap(u.op.val), exp);
-            else if (t.equals(Type.INT))
+            }
+            if (t.equals(Type.INT)) {
+                if (u.op.val.equals(Operator.MINUS))
+                    return new Unary(new Operator(Operator.INT_NEG), exp);
                 return new Unary(u.op.intMap(u.op.val), exp);
-            else if (t.equals(Type.CHAR))
+            }
+            if (t.equals(Type.CHAR))
                 return new Unary(u.op.charMap(u.op.val), exp);
         }
         throw new IllegalArgumentException("should never reach here");
