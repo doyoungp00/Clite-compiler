@@ -10,7 +10,7 @@ public class Semantics {
         prog.display();
         System.out.println("\n\nBegin type checking...");
         System.out.println("\nType map:");
-        TypeMap map = StaticTypeCheck.typing(prog.decpart);
+        TypeMap map = StaticTypeCheck.typing(prog.globals, prog.functions);
         map.display();
         StaticTypeCheck.V(prog);
         Program out = TypeTransformer.T(prog, map);
@@ -23,7 +23,7 @@ public class Semantics {
     }
 
     State M(Program p) {
-        return M(p.body, initialState(p.decpart));
+        return M(p.functions, initialState(p.globals));
     }
 
     State initialState(Declarations d) {
@@ -91,7 +91,7 @@ public class Semantics {
                 return new BoolValue(v1.intValue() > v2.intValue());
             case Operator.INT_GE:
                 return new BoolValue(v1.intValue() >= v2.intValue());
-                
+
             case Operator.FLOAT_LT:
                 return new BoolValue(v1.floatValue() < v2.floatValue());
             case Operator.FLOAT_LE:

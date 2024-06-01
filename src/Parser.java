@@ -6,6 +6,7 @@ public class Parser {
 
     Token token;          // current token from the input stream
     Lexer lexer;
+    String funcId;
 
     public Parser(Lexer ts) { // Open the C++Lite source program
         lexer = ts;                          // as a token stream, and
@@ -40,23 +41,76 @@ public class Parser {
     }
 
     public Program program() {
-        // Program --> void main ( ) '{' Declarations Statements '}'
-        TokenType[] header = {TokenType.Int, TokenType.Main,
-                TokenType.LeftParen, TokenType.RightParen};
-        for (int i = 0; i < header.length; i++)   // bypass "int main ( )"
-            match(header[i]);
+        // Program --> { Type Identifier FunctionOrGlobal } MainFunction
+        Program prog = new Program();
+        prog.globals = new Declarations();
+        prog.functions = new Functions();
+
+        Type t;
+        Declaration d;
+        Function f;
+
+        while (!token.type().equals(TokenType.Eof)) {
+            t = type();
+            if (token.type().equals(TokenType.Identifier) || token.type().equals(TokenType.Main)) {
+                d = new Declaration(new Variable(token.value()), t);
+                token = lexer.next();
+                TokenType tt = token.type();
+
+                // 전역변수 선언일 경우
+                if (tt.equals(TokenType.Comma) || tt.equals(TokenType.Semicolon)) {
+                    prog.globals.add(d);
+                    while (token.type().equals(TokenType.Comma)) {
+                        token = lexer.next();
+                        d = new Declaration(new Variable(token.value()), t);
+                        prog.globals.add(d);
+                        token = lexer.next();
+                    }
+                    token = lexer.next();
+                }
+                // 함수 선언일 경우
+                else if (tt.equals(TokenType.LeftParen)) {
+                    funcId = d.v.toString();
+                    f = new Function(funcId, t);
+                    token = lexer.next(); // '(' 소모
+                    f = functionRest(f); // 함수 몸체 파싱
+                    prog.functions.add(f);
+                } else error("FunctionOrGlobal");
+            } else error("Identifier");
+        }
+        return prog;
+    }
+
+    private Function functionRest(Function f) {
+        // functionRest --> ( Parameters ) { Declarations Statements }
+        // Parameters --> [ Parameter { , Parameter } ]
+        f.params = new Declarations();
+        while (isType()) {
+            f.params = parameter(f.params);
+            if (token.type().equals(TokenType.Comma))
+                match(TokenType.Comma);
+        }
+        match(TokenType.RightParen);
         match(TokenType.LeftBrace);
-
-        // 모든 Declarations와 Statements (Block) 가져와서 프로그램 생성
-        Declarations d = declarations();
-        Block b = new Block();
-        // 블럭이나 파일이 끝나기 전까지 Statement 추가
+        f.locals = declarations();
+        f.body = new Block();
         while (!token.type().equals(TokenType.RightBrace) && !token.type().equals(TokenType.Eof))
-            b.members.add(statement());
+            f.body.members.add(statement());
         match(TokenType.RightBrace);
+        return f;
+    }
 
-        // 받아온 Declarations와 Statements로 새로운 Program 생성
-        return new Program(d, b);
+    private Declarations parameter(Declarations params) {
+        // Parameter --> Type Identifier
+        Variable v = null;
+        Type t = new Type(token.value());
+
+        token = lexer.next();
+        if (token.type().equals(TokenType.Identifier))
+            v = new Variable(match(TokenType.Identifier));
+        else error("Identifier");
+        params.add(new Declaration(v, t));
+        return params;
     }
 
     private Declarations declarations() {
@@ -86,7 +140,7 @@ public class Parser {
     }
 
     private Type type() {
-        // Type  -->  int | bool | float | char
+        // Type  -->  int | bool | float | char | void
         Type t = null;
         // 토큰의 TokenType을 보고 그에 맞는 Type 반환
         switch (token.type()) {
@@ -102,15 +156,18 @@ public class Parser {
             case Char:
                 t = Type.CHAR;
                 break;
+            case Void:
+                t = Type.VOID;
+                break;
             default:
-                error("int | bool | float | char");
+                error("int | bool | float | char | void");
         }
         match(token.type()); // 토큰 소모
         return t;
     }
 
     private Statement statement() {
-        // Statement --> ; | Block | Assignment | IfStatement | WhileStatement
+        // Statement --> ; | Block | Assignment | Return | IfStatement | WhileStatement
         Statement s = new Skip();
         switch (token.type()) {
             case Semicolon:
@@ -121,7 +178,10 @@ public class Parser {
                 s = statements();
                 break;
             case Identifier:
-                s = assignment();
+                s = assignOrCall();
+                break;
+            case Return:
+                s = returnStatement();
                 break;
             case If:
                 s = ifStatement();
@@ -191,6 +251,53 @@ public class Parser {
         match(TokenType.RightParen);
         Statement body = statement();
         return new Loop(test, body);
+    }
+
+    private Statement assignOrCall() {
+        Variable v = new Variable(token.value());
+
+        token = lexer.next(); // 식별자 스킵
+
+        // 대입문
+        if (token.type().equals(TokenType.Assign)) {
+            token = lexer.next();
+            Expression src = expression();
+            match(TokenType.Semicolon);
+            return new Assignment(v, src);
+        }
+        // 호출문
+        else if (token.type().equals(TokenType.LeftParen)) {
+            String n = v.toString();
+            token = lexer.next();
+            Expressions a = arguments();
+            match(TokenType.RightParen);
+            match(TokenType.Semicolon);
+            return new Call(n, a);
+        } else error("assignOrCall");
+        return null;
+    }
+
+    private Expressions arguments() {
+        // Arguments --> [ Expression { , Expression } ]
+        Expressions args = new Expressions();
+        while (!token.type().equals(TokenType.RightParen)) {
+            args.add(expression());
+            if (token.type().equals(TokenType.Comma))
+                match(TokenType.Comma);
+            else if (!token.type().equals(TokenType.RightParen))
+                error("Expression");
+        }
+        if (args.isEmpty()) args = null;
+        return args;
+    }
+
+
+    private Return returnStatement() {
+        match(TokenType.Return);
+        Variable t = new Variable(funcId);
+        Expression r = expression();
+        match(TokenType.Semicolon);
+        return new Return(t, r);
     }
 
     private Expression expression() {
@@ -269,11 +376,18 @@ public class Parser {
     }
 
     private Expression primary() {
-        // Primary --> Identifier | Literal | ( Expression )
-        //             | Type ( Expression )
+        // Primary --> Identifier | Literal | ( Expression ) | Type ( Expression ) | Call
         Expression e = null;
         if (token.type().equals(TokenType.Identifier)) {
-            e = new Variable(match(TokenType.Identifier));
+            Variable v = new Variable(match(TokenType.Identifier));
+            e = v;
+            if (token.type().equals(TokenType.LeftParen)) {
+                token = lexer.next();
+                String n = v.toString();
+                Expressions a = arguments();
+                match(TokenType.RightParen);
+                e = new Call(n, a);
+            }
         } else if (isLiteral()) {
             e = literal();
         } else if (token.type().equals(TokenType.LeftParen)) {
@@ -319,30 +433,30 @@ public class Parser {
     }
 
     private boolean isAddOp() {
-        return token.type().equals(TokenType.Plus) ||
-                token.type().equals(TokenType.Minus);
+        return token.type().equals(TokenType.Plus)
+                || token.type().equals(TokenType.Minus);
     }
 
     private boolean isMultiplyOp() {
-        return token.type().equals(TokenType.Multiply) ||
-                token.type().equals(TokenType.Divide);
+        return token.type().equals(TokenType.Multiply)
+                || token.type().equals(TokenType.Divide);
     }
 
     private boolean isUnaryOp() {
-        return token.type().equals(TokenType.Not) ||
-                token.type().equals(TokenType.Minus);
+        return token.type().equals(TokenType.Not)
+                || token.type().equals(TokenType.Minus);
     }
 
     private boolean isEqualityOp() {
-        return token.type().equals(TokenType.Equals) ||
-                token.type().equals(TokenType.NotEqual);
+        return token.type().equals(TokenType.Equals)
+                || token.type().equals(TokenType.NotEqual);
     }
 
     private boolean isRelationalOp() {
-        return token.type().equals(TokenType.Less) ||
-                token.type().equals(TokenType.LessEqual) ||
-                token.type().equals(TokenType.Greater) ||
-                token.type().equals(TokenType.GreaterEqual);
+        return token.type().equals(TokenType.Less)
+                || token.type().equals(TokenType.LessEqual)
+                || token.type().equals(TokenType.Greater)
+                || token.type().equals(TokenType.GreaterEqual);
     }
 
     private boolean isType() {
@@ -353,15 +467,15 @@ public class Parser {
     }
 
     private boolean isLiteral() {
-        return token.type().equals(TokenType.IntLiteral) ||
-                isBooleanLiteral() ||
-                token.type().equals(TokenType.FloatLiteral) ||
-                token.type().equals(TokenType.CharLiteral);
+        return token.type().equals(TokenType.IntLiteral)
+                || isBooleanLiteral()
+                || token.type().equals(TokenType.FloatLiteral)
+                || token.type().equals(TokenType.CharLiteral);
     }
 
     private boolean isBooleanLiteral() {
-        return token.type().equals(TokenType.True) ||
-                token.type().equals(TokenType.False);
+        return token.type().equals(TokenType.True)
+                || token.type().equals(TokenType.False);
     }
 
 } // Parser

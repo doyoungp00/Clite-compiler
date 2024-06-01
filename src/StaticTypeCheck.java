@@ -14,24 +14,71 @@ public class StaticTypeCheck {
         return map;
     }
 
+    public static TypeMap typing(Declarations ds, Functions fs) {
+        TypeMap map = new TypeMap();
+        for (Declaration d : ds)
+            map.put(d.v, d.t);
+        for (Function f : fs) // 함수는 반환 타입과 매개변수들을 타입으로 검사
+            map.put(new Variable(f.id), new ProtoType(f.t, f.params));
+        return map;
+    }
+
     public static void check(boolean test, String msg) {
         if (test) return;
         System.err.println(msg);
         System.exit(1);
     }
 
-    public static void V(Declarations d) {
-        for (int i = 0; i < d.size() - 1; i++)
-            for (int j = i + 1; j < d.size(); j++) {
-                Declaration di = d.get(i);
-                Declaration dj = d.get(j);
+    public static void V(Declarations ds) {
+        for (int i = 0; i < ds.size() - 1; i++) {
+            for (int j = i + 1; j < ds.size(); j++) {
+                Declaration di = ds.get(i);
+                Declaration dj = ds.get(j);
                 check(!(di.v.equals(dj.v)), "duplicate declaration: " + dj.v);
             }
+        }
     }
 
+    public static void V(Declarations ds, Functions fs) {
+        for (int i = 0; i < ds.size() - 1; i++) {
+            Declaration di = ds.get(i);
+            for (int j = i + 1; j < ds.size(); j++) {
+                Declaration dj = ds.get(j);
+                check(!(di.v.equals(dj.v)), "duplicate declaration: " + dj.v);
+            }
+            for (Function fj : fs)
+                check(!di.v.toString().equals(fj.id), "duplicate declaration: " + fj.id);
+        }
+    }
+
+    public static void V(Declarations ds1, Declarations ds2) {
+        for (Declaration di : ds1)
+            for (Declaration dj : ds2)
+                check(!(di.v.equals(dj.v)), "duplicate declaration: " + dj.v);
+    }
+
+
     public static void V(Program p) {
-        V(p.decpart);
-        V(p.body, typing(p.decpart));
+        V(p.globals, p.functions);
+        boolean foundMain = false;
+        TypeMap tmg = typing(p.globals, p.functions); // 글로벌 타입맵
+        System.out.print("Globals: ");
+        p.globals.display(1);
+        System.out.println();
+        for (Function f : p.functions) {
+            if (f.id.equals("main")) {
+                if (foundMain)
+                    check(false, "Duplicate main function");
+                else
+                    foundMain = true;
+            }
+            V(f.params, f.locals);
+            TypeMap tmf = typing(f.params).onion(typing(f.locals));
+            tmf = tmg.onion(tmf);
+            System.out.print("Function " + f.id + " = ");
+            tmf.display();
+            V(f.body, tmf);
+        }
     }
 
     public static Type typeOf(Expression e, TypeMap tm) {
@@ -44,7 +91,7 @@ public class StaticTypeCheck {
         if (e instanceof Binary) {
             Binary b = (Binary) e;
             if (b.op.ArithmeticOp())
-                if (typeOf(b.term1, tm) == Type.FLOAT)
+                if (typeOf(b.term1, tm).equals(Type.FLOAT))
                     return (Type.FLOAT);
                 else return (Type.INT);
             if (b.op.RelationalOp() || b.op.BooleanOp())
@@ -58,7 +105,18 @@ public class StaticTypeCheck {
             else if (u.op.floatOp()) return (Type.FLOAT);
             else if (u.op.charOp()) return (Type.CHAR);
         }
+        if (e instanceof Call) {
+            Call c = (Call) e;
+            check(tm.containsKey(new Variable(c.name)), "undefined name: " + c.name);
+            return tm.get(new Variable(c.name));
+        }
         throw new IllegalArgumentException("should never reach here");
+    }
+
+    public static Type typeOf(Function f, TypeMap tm) {
+        Variable v = new Variable(f.id);
+        check(tm.containsKey(v), "undefined variable: " + v);
+        return tm.get(v); // 프로토타입 반환
     }
 
     public static void V(Expression e, TypeMap tm) {
@@ -76,11 +134,11 @@ public class StaticTypeCheck {
             V(b.term1, tm);
             V(b.term2, tm);
             if (b.op.ArithmeticOp())
-                check(typ1 == typ2 && (typ1 == Type.INT || typ1 == Type.FLOAT), "type error for " + b.op);
+                check(typ1.equals(typ2) && (typ1.equals(Type.INT) || typ1.equals(Type.FLOAT)), "arithmetic type error for " + b.op);
             else if (b.op.RelationalOp())
-                check(typ1 == typ2, "type error for " + b.op);
+                check(typ1.equals(typ2), "relational type error for " + b.op);
             else if (b.op.BooleanOp())
-                check(typ1 == Type.BOOL && typ2 == Type.BOOL, b.op + ": non-bool operand");
+                check(typ1.equals(Type.BOOL) && typ2.equals(Type.BOOL), b.op + ": non-bool operand");
             else
                 throw new IllegalArgumentException("should never reach here");
             return;
@@ -92,18 +150,38 @@ public class StaticTypeCheck {
 
             // op에 대해 검사
             if (u.op.NotOp()) // '!' 일 때 bool 식 필요
-                check(t == Type.BOOL, u.op + ": non-bool operand");
+                check(t.equals(Type.BOOL), u.op + ": non-bool operand");
             else if (u.op.NegateOp()) // '-' 일 때 int 또는 float 식 필요
-                check(t == Type.INT || t == Type.FLOAT, "type error for " + u.op);
+                check(t.equals(Type.INT) || t.equals(Type.FLOAT), "type error for " + u.op);
             else if (u.op.floatOp() || u.op.charOp()) // float 또는 char 캐스팅할 때 int 식 필요
-                check(t == Type.INT, "type error for " + u.op);
+                check(t.equals(Type.INT), "type error for " + u.op);
             else if (u.op.intOp()) // int 캐스팅할 때 float 또는 char 식 필요
-                check(t == Type.FLOAT || t == Type.CHAR, "type error for " + u.op);
+                check(t.equals(Type.FLOAT) || t.equals(Type.CHAR), "type error for " + u.op);
             else
                 throw new IllegalArgumentException("should never reach here");
             return;
         }
+        if (e instanceof Call) {
+            Variable v = new Variable(((Call) e).name);
+            Expressions es = ((Call) e).args;
+            check(tm.containsKey(v), "undeclared function: " + v);
+            ProtoType p = (ProtoType) tm.get(v);
+            checkProtoType(p, tm, typeOf(e, tm), es);
+            return;
+        }
         throw new IllegalArgumentException("should never reach here");
+    }
+
+    private static void checkProtoType(ProtoType p, TypeMap tm, Type t, Expressions es) {
+        TypeMap tmp = typing(p.params); // 파라미터 위한 임시 타입맵
+        check(es.size() == p.params.size(), "match numbers of arguments and pairs");
+        check(p.toString().equals(t.toString()), "calls can only be to void functions");
+        for (int i = 0; i < es.size(); i++) {
+            // 인수와 파라미터 타입 매칭
+            Expression e1 = es.get(i);
+            Expression e2 = p.params.get(i).v;
+            check(typeOf(e1, tm).equals(typeOf(e2, tmp)), "argument type does not match parameter");
+        }
     }
 
     public static void V(Statement s, TypeMap tm) {
@@ -114,13 +192,13 @@ public class StaticTypeCheck {
             Assignment a = (Assignment) s;
             check(tm.containsKey(a.target), " undefined target in assignment: " + a.target);
             V(a.source, tm);
-            Type ttype = (Type) tm.get(a.target);
+            Type ttype = tm.get(a.target);
             Type srctype = typeOf(a.source, tm);
-            if (ttype != srctype) {
+            if (ttype.toString() != srctype.toString()) {
                 if (ttype == Type.FLOAT)
-                    check(srctype == Type.INT, "mixed mode assignment to " + a.target);
+                    check(srctype.toString() == Type.INT.toString(), "mixed mode assignment to float " + a.target);
                 else if (ttype == Type.INT)
-                    check(srctype == Type.CHAR, "mixed mode assignment to " + a.target);
+                    check(srctype.toString() == Type.CHAR.toString(), "mixed mode assignment to int " + a.target);
                 else
                     check(false, "mixed mode assignment to " + a.target);
             }
@@ -130,7 +208,7 @@ public class StaticTypeCheck {
         if (s instanceof Conditional) {
             Conditional c = (Conditional) s;
             Type t = typeOf(c.test, tm);
-            check(t == Type.BOOL, "conditional test is not boolean");
+            check(t.equals(Type.BOOL), "conditional test is not boolean");
             V(c.thenbranch, tm);
             V(c.elsebranch, tm);
             return;
@@ -139,7 +217,7 @@ public class StaticTypeCheck {
         if (s instanceof Loop) {
             Loop l = (Loop) s;
             Type t = typeOf(l.test, tm);
-            check(t == Type.BOOL, "loop test is not boolean");
+            check(t.equals(Type.BOOL), "loop test is not boolean");
             V(l.body, tm);
             return;
         }
@@ -149,6 +227,21 @@ public class StaticTypeCheck {
             for (Statement stmt : b.members) V(stmt, tm);
             return;
         }
+        if (s instanceof Call) {
+            Variable v = new Variable(((Call) s).name);
+            Expressions es = ((Call) s).args;
+            check(tm.containsKey(v), "undefined function: " + v);
+            ProtoType p = (ProtoType) tm.get(v);
+            checkProtoType(p, tm, Type.VOID, es);
+            return;
+        }
+        if (s instanceof Return) {
+            Variable fid = ((Return) s).target;
+            check(tm.containsKey(fid), "undefined function: " + fid);
+            V(((Return) s).result, tm);
+            check(tm.get(fid).toString().equals(typeOf(((Return) s).result, tm).toString()), "incorrect return type");
+            return;
+        }
         throw new IllegalArgumentException("should never reach here");
     }
 
@@ -156,9 +249,9 @@ public class StaticTypeCheck {
         Parser parser = new Parser(new Lexer(args[0]));
         Program prog = parser.program();
         prog.display();
-        System.out.println("\nBegin type checking...");
-        System.out.println("Type map:");
-        TypeMap map = typing(prog.decpart);
+        System.out.println("\n\nBegin type checking...");
+        System.out.print("Type map: ");
+        TypeMap map = typing(prog.globals, prog.functions);
         map.display();
         V(prog);
     } //main

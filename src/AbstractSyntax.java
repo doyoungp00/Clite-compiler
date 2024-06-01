@@ -20,21 +20,16 @@ class Indenter {
 }
 
 class Program {
-    // Program = Declarations decpart ; Block body
-    Declarations decpart;
-    Block body;
-
-    Program(Declarations d, Block b) {
-        decpart = d;
-        body = b;
-    }
+    // Program = Declarations globals; Functions functions
+    Declarations globals; // 전역변수 선언
+    Functions functions; // 함수 선언
 
     public void display() {
         int level = 0;
         Indenter i = new Indenter(level);
         i.display("Program (abstract syntax): ");
-        decpart.display(level + 1);
-        body.display(level + 1);
+        globals.display(level + 1);
+        functions.display(level + 1);
     }
 }
 
@@ -43,8 +38,7 @@ class Declarations extends ArrayList<Declaration> {
     // (a list of declarations d1, d2, ..., dn)
     public void display(int level) {
         Indenter i = new Indenter(level);
-        i.display("Declarations:");
-        i.display("  Declarations = {");
+        i.display("Declarations = {");
         String sep = "";
         for (Declaration d : this) {
             System.out.print(sep);
@@ -70,27 +64,87 @@ class Declaration {
     }
 }
 
+class Functions extends ArrayList<Function> {
+    // Functions = Function*
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Functions = {");
+        for (Function f : this) {
+            f.display(level + 1);
+        }
+        i.display("}");
+    }
+}
+
+class Function {
+    // Function = Type t; String id; Declarations params, locals; Block body
+    Type t;
+    String id;
+    Declarations params;
+    Declarations locals;
+    Block body;
+
+    Function(String i, Type type) {
+        t = type;
+        id = i;
+    }
+
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display(t.toString() + " " + id);
+        params.display(level + 1);
+    }
+}
+
 class Type {
-    // Type = int | bool | char | float 
+    // Type = int | bool | char | float | void
     final static Type INT = new Type("int");
     final static Type BOOL = new Type("bool");
     final static Type CHAR = new Type("char");
     final static Type FLOAT = new Type("float");
-    // final static Type UNDEFINED = new Type("undef");
+    final static Type VOID = new Type("void");
+    final static Type UNDEFINED = new Type("undef");
+    final static Type UNUSED = new Type("unused");
 
     private String id;
 
-    private Type(String t) {
+    Type(String t) {
         id = t;
     }
 
+    @Override
     public String toString() {
         return id;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        return id.equals(((Type) obj).id);
+    }
+}
+
+class ProtoType extends Type {
+    // 함수의 이름, 반환형, 파라미터만 정의해 몸체 없이 함수 식별 가능
+    Declarations params;
+
+    ProtoType(Type returnType, Declarations p) {
+        super(returnType.toString());
+        params = p;
+    }
+
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Prototype:");
+        i.display("  Return Type:" + super.toString());
+        i.display("  Parameters:");
+        params.display(level + 2);
     }
 }
 
 abstract class Statement {
-    // Statement = Skip | Block | Assignment | Conditional | Loop
+    // Statement = Skip | Block | Assignment | Conditional | Loop | Call | Return
     public void display(int level) {
     }
 }
@@ -178,8 +232,26 @@ class Loop extends Statement {
     }
 }
 
-abstract class Expression {
-    // Expression = Variable | Value | Binary | Unary
+class Return extends Statement {
+    Variable target;
+    Expression result;
+
+    Return(Variable t, Expression r) {
+        target = t;
+        result = r;
+    }
+
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Return:");
+        target.display(level + 1);
+        result.display(level + 1);
+    }
+}
+
+abstract class Expression extends Statement {
+    // Expression = Variable | Value | Binary | Unary | Call
     public void display(int level) {
     }
 }
@@ -214,8 +286,7 @@ class Variable extends Expression {
 }
 
 abstract class Value extends Expression {
-    // Value = IntValue | BoolValue |
-    //         CharValue | FloatValue
+    // Value = IntValue | BoolValue | CharValue | FloatValue | Undefined | Unused
     protected Type type;
     protected boolean undef = true;
 
@@ -224,6 +295,8 @@ abstract class Value extends Expression {
         if (type == Type.BOOL) return new BoolValue();
         if (type == Type.CHAR) return new CharValue();
         if (type == Type.FLOAT) return new FloatValue();
+        if (type == Type.UNDEFINED) return new UndefinedValue();
+        if (type == Type.UNUSED) return new UnusedValue();
         throw new IllegalArgumentException("Illegal type in mkValue");
     }
 
@@ -249,6 +322,10 @@ abstract class Value extends Expression {
 
     boolean isUndef() {
         return undef;
+    }
+
+    boolean isUnused() {
+        return false;
     }
 
     Type type() {
@@ -381,6 +458,33 @@ class FloatValue extends Value {
     }
 }
 
+class UndefinedValue extends Value {
+    UndefinedValue() {
+        type = Type.UNDEFINED;
+        undef = true;
+    }
+
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Undefined");
+    }
+}
+
+class UnusedValue extends Value {
+    UnusedValue() {
+        type = Type.UNUSED;
+        undef = true;
+    }
+
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Unused");
+    }
+}
+
+
 class Binary extends Expression {
     // Binary = Operator op; Expression term1, term2
     Operator op;
@@ -418,6 +522,36 @@ class Unary extends Expression {
         i.display("Unary:");
         i.display("  Operator: " + op.toString());
         term.display(level + 1);
+    }
+}
+
+class Call extends Expression {
+    String name;
+    Expressions args;
+
+    Call(String n, Expressions a) {
+        name = n;
+        args = a;
+    }
+
+    @Override
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Call Statement:");
+        i.display("  " + name);
+        args.display(level + 1);
+    }
+}
+
+class Expressions extends ArrayList<Expression> {
+    public void display(int level) {
+        Indenter i = new Indenter(level);
+        i.display("Expressions:");
+        i.display("  Expressions = {");
+        for (Expression e : this) {
+            e.display(level + 2);
+        }
+        System.out.print("  }");
     }
 }
 

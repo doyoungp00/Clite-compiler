@@ -2,7 +2,7 @@ public class TypeTransformer {
 
     public static Program T(Program p, TypeMap tm) {
         Block body = (Block) T(p.body, tm);
-        return new Program(p.decpart, body);
+        return new Program();
     }
 
     public static Expression T(Expression e, TypeMap tm) {
@@ -100,7 +100,7 @@ public class TypeTransformer {
         prog.display();
         System.out.println("\nBegin type checking...");
         System.out.println("Type map:");
-        TypeMap map = StaticTypeCheck.typing(prog.decpart);
+        TypeMap map = StaticTypeCheck.typing(prog.globals, prog.functions);
         map.display();
         StaticTypeCheck.V(prog);
         Program out = T(prog, map);
