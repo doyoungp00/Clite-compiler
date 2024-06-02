@@ -24,6 +24,14 @@ class Program {
     Declarations globals; // 전역변수 선언
     Functions functions; // 함수 선언
 
+    public Program() {
+    }
+
+    public Program(Declarations g, Functions f) {
+        globals = g;
+        functions = f;
+    }
+
     public void display() {
         int level = 0;
         Indenter i = new Indenter(level);
@@ -59,6 +67,11 @@ class Declaration {
         t = type;
     } // declaration */
 
+    Declaration(String var, Type type) {
+        v = new Variable(var);
+        t = type;
+    }
+
     public void display() {
         System.out.print("<" + v.toString() + ", " + t.toString() + ">");
     }
@@ -66,6 +79,14 @@ class Declaration {
 
 class Functions extends ArrayList<Function> {
     // Functions = Function*
+
+    public Function findFunction(String name) {
+        for (Function f : this)
+            if (f.id.equals(name))
+                return f;
+        throw new IllegalArgumentException("Function not found: " + name);
+    }
+
     public void display(int level) {
         Indenter i = new Indenter(level);
         i.display("Functions = {");
@@ -89,10 +110,23 @@ class Function {
         id = i;
     }
 
+    public Function(Type t, String id, Declarations params, Declarations locals, Block body) {
+        this.t = t;
+        this.id = id;
+        this.params = params;
+        this.locals = locals;
+        this.body = body;
+    }
+
     public void display(int level) {
         Indenter i = new Indenter(level);
         i.display(t.toString() + " " + id);
-        params.display(level + 1);
+        i.display("  Parameters:");
+        params.display(level + 2);
+        i.display("  Local Variables:");
+        locals.display(level + 2);
+        i.display("  Body:");
+        body.display(level + 2);
     }
 }
 
@@ -106,7 +140,7 @@ class Type {
     final static Type UNDEFINED = new Type("undef");
     final static Type UNUSED = new Type("unused");
 
-    private String id;
+    private final String id;
 
     Type(String t) {
         id = t;
@@ -252,27 +286,35 @@ class Return extends Statement {
 
 abstract class Expression extends Statement {
     // Expression = Variable | Value | Binary | Unary | Call
+    @Override
     public void display(int level) {
     }
 }
 
 class Variable extends Expression {
     // Variable = String id
-    private String id;
+    private final String id;
 
     Variable(String s) {
         id = s;
+    }
+
+    Variable(Variable v) {
+        this.id = v.id;
     }
 
     public String toString() {
         return id;
     }
 
+    @Override
     public boolean equals(Object obj) {
-        String s = ((Variable) obj).id;
-        return id.equals(s); // case-sensitive identifiers
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        return id.equals(((Variable) obj).id);
     }
 
+    @Override
     public int hashCode() {
         return id.hashCode();
     }
@@ -285,7 +327,7 @@ class Variable extends Expression {
 
 }
 
-abstract class Value extends Expression {
+abstract class Value extends Expression implements Cloneable {
     // Value = IntValue | BoolValue | CharValue | FloatValue | Undefined | Unused
     protected Type type;
     protected boolean undef = true;
@@ -321,7 +363,7 @@ abstract class Value extends Expression {
     }
 
     boolean isUndef() {
-        return undef;
+        return !undef;
     }
 
     boolean isUnused() {
@@ -330,6 +372,15 @@ abstract class Value extends Expression {
 
     Type type() {
         return type;
+    }
+
+    @Override
+    public Value clone() {
+        try {
+            return (Value) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 }
 
@@ -346,11 +397,13 @@ class IntValue extends Value {
         undef = false;
     }
 
+    @Override
     int intValue() {
         assert !undef : "reference to undefined int value";
         return value;
     }
 
+    @Override
     public String toString() {
         if (undef) return "undef";
         return "" + value;
@@ -376,16 +429,19 @@ class BoolValue extends Value {
         undef = false;
     }
 
+    @Override
     boolean boolValue() {
         assert !undef : "reference to undefined bool value";
         return value;
     }
 
+    @Override
     int intValue() {
         assert !undef : "reference to undefined bool value";
         return value ? 1 : 0;
     }
 
+    @Override
     public String toString() {
         if (undef) return "undef";
         return "" + value;
@@ -411,11 +467,13 @@ class CharValue extends Value {
         undef = false;
     }
 
+    @Override
     char charValue() {
         assert !undef : "reference to undefined char value";
         return value;
     }
 
+    @Override
     public String toString() {
         if (undef) return "undef";
         return "" + value;
@@ -441,11 +499,13 @@ class FloatValue extends Value {
         undef = false;
     }
 
+    @Override
     float floatValue() {
         assert !undef : "reference to undefined float value";
         return value;
     }
 
+    @Override
     public String toString() {
         if (undef) return "undef";
         return "" + value;
@@ -551,7 +611,7 @@ class Expressions extends ArrayList<Expression> {
         for (Expression e : this) {
             e.display(level + 2);
         }
-        System.out.print("  }");
+        i.display("  }");
     }
 }
 
@@ -627,26 +687,26 @@ class Operator {
     final static String F2I = "F2I";
     final static String C2I = "C2I";
     final static String I2C = "I2C";
-    final static String intMap[][] = {
+    final static String[][] intMap = {
             {PLUS, INT_PLUS}, {MINUS, INT_MINUS},
             {TIMES, INT_TIMES}, {DIV, INT_DIV},
             {EQ, INT_EQ}, {NE, INT_NE}, {LT, INT_LT},
             {LE, INT_LE}, {GT, INT_GT}, {GE, INT_GE},
             {NEG, INT_NEG}, {FLOAT, I2F}, {CHAR, I2C}
     };
-    final static String floatMap[][] = {
+    final static String[][] floatMap = {
             {PLUS, FLOAT_PLUS}, {MINUS, FLOAT_MINUS},
             {TIMES, FLOAT_TIMES}, {DIV, FLOAT_DIV},
             {EQ, FLOAT_EQ}, {NE, FLOAT_NE}, {LT, FLOAT_LT},
             {LE, FLOAT_LE}, {GT, FLOAT_GT}, {GE, FLOAT_GE},
             {NEG, FLOAT_NEG}, {INT, F2I}
     };
-    final static String charMap[][] = {
+    final static String[][] charMap = {
             {EQ, CHAR_EQ}, {NE, CHAR_NE}, {LT, CHAR_LT},
             {LE, CHAR_LE}, {GT, CHAR_GT}, {GE, CHAR_GE},
             {INT, C2I}
     };
-    final static String boolMap[][] = {
+    final static String[][] boolMap = {
             {EQ, BOOL_EQ}, {NE, BOOL_NE}, {LT, BOOL_LT},
             {LE, BOOL_LE}, {GT, BOOL_GT}, {GE, BOOL_GE},
             {AND, AND}, {OR, OR}
@@ -657,34 +717,36 @@ class Operator {
         val = s;
     }
 
-    final static private Operator map(String[][] tmap, String op) {
-        for (int i = 0; i < tmap.length; i++)
-            if (tmap[i][0].equals(op))
-                return new Operator(tmap[i][1]);
+    static private Operator map(String[][] tmap, String op) {
+        for (String[] strings : tmap)
+            if (strings[0].equals(op))
+                return new Operator(strings[1]);
         assert false : "should never reach here";
         return null;
     }
 
-    final static public Operator intMap(String op) {
+    static public Operator intMap(String op) {
         return map(intMap, op);
     }
 
-    final static public Operator floatMap(String op) {
+    static public Operator floatMap(String op) {
         return map(floatMap, op);
     }
 
-    final static public Operator charMap(String op) {
+    static public Operator charMap(String op) {
         return map(charMap, op);
     }
 
-    final static public Operator boolMap(String op) {
+    static public Operator boolMap(String op) {
         return map(boolMap, op);
     }
 
+    @Override
     public String toString() {
         return val;
     }
 
+    @Override
     public boolean equals(Object obj) {
         return val.equals(obj);
     }

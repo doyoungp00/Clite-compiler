@@ -207,19 +207,6 @@ public class Parser {
         return b;
     }
 
-    private Assignment assignment() {
-        // Assignment --> Identifier = Expression ;
-        Variable target;
-        Expression source;
-
-        // 좌변 Identifier로 새로운 Variable 생성
-        target = new Variable(match(TokenType.Identifier));
-        match(TokenType.Assign); // 대입 '=' 토큰 소모
-        source = expression(); // Expression 파싱
-        match(TokenType.Semicolon); // 세미콜론 소모
-        return new Assignment(target, source);
-    }
-
     private Conditional ifStatement() {
         // IfStatement --> if ( Expression ) Statement [ else Statement ]
         Conditional c = null;
